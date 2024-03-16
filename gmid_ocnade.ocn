@@ -1,0 +1,72 @@
+simulator( 'spectre )
+design(	 "/tmp/nfet/spectre/schematic/netlist/netlist")
+resultsDir( "/tmp/nfet/spectre/schematic" )
+modelFile( 
+    '("/ECEnet/Apps1/linux/cad12/tools/PDKs/gpdk180_v3.3/models/spectre/gpdk.scs" "stat")
+)
+
+procedure(
+	vartowave(var refwave)
+		varwave0 = ((refwave+1) * var)
+		varwave1 = (varwave0 / (refwave+1))
+		varwave1 ;return variable as a wave with length of refwave
+)
+
+procedure(
+	simsweep(outputfile length_in vbs_in vds_in)
+		analysis('dc ?saveOppoint t  ?param "vgs"  ?start "0"  
+				?stop "1.8"  ?step "50m"  )
+		desVar(	  "L" length_in	)
+		desVar(	  "W" 10u	)
+		desVar(	  "vbs" vbs_in	)
+		desVar(	  "vds" vds_in	)
+		desVar(	  "vgs" 500m	)
+		envOption(
+			'analysisOrder  list("dc") 
+		)
+		saveOpPoint( "/NM0" ?operatingPoints "ids vgs vds vbs vgd vth vdsat gm gds gmbs cjd cjs cgg cgd cgs cgb cdg cdd cds cdb csg csd css csb cbg cbd cbs cbb ron id pwr gmoverid ueff vsb gmb vgt vdss self_gain rout vearly ft region" )
+		temp( 27 ) 
+		run()
+		
+		vgs = OS("/NM0" "vgs")
+		vds = OS("/NM0" "vds")
+		vsb = OS("/NM0" "vsb")
+		gm = OS("/NM0" "gm")
+		Id = OS("/NM0" "ids")
+		gmId = (gm / Id)
+		Jd = (Id / VAR("W"))
+		cgg = OS("/NM0" "cgg")
+		ft = (gm / (2 * 3.141593 * cgg))
+		gds = OS("/NM0" "gds")
+		Avo = (gm / gds)
+		FoM = (Avo * ft)
+		
+		length_wave = vartowave(VAR("L") vgs)
+		
+		ocnPrint( ?output outputfile ?numberNotation 'engineering ?numSpaces 10 length_wave vds vsb gm Id gds cgg gmId Jd ft Avo FoM)
+)
+
+resultscsv = outfile( "./nfet_gmid.csv" "w")
+close(resultscsv)
+
+;len_list = list( 180e-9 250e-9 300e-9 350e-9 400e-9 450e-9 500e-9 600e-9 700e-9 800-9 1e-6)
+len_list = list( 180e-9 500e-9 )
+vbs_list = list( 0 )
+vds_list = list( 400e-3 700e-3 )
+
+foreach( vbs vbs_list
+	foreach( len len_list
+		foreach( vds vds_list
+			tempout = outfile( "./adel_out.out" "w")
+			simsweep(tempout len vbs vds)
+			close(tempout)
+			
+			;system(sprintf(nil "pr -mr -t -s\  %s \n %s > %s" "./nfet_gmid.csv" "./adel_out.out" "./gmByIdinter.out")) 
+			system(sprintf(nil "sed -i '2 r ./nfet_gmid.csv' adel_out.out"))
+			system(sprintf(nil "sed -i '/^[[:space:]]*$/d' adel_out.out"))
+			system(sprintf(nil "sed -i '1d' adel_out.out"))
+			system(sprintf(nil "rm -rf ./nfet_gmid.csv"))
+			system(sprintf(nil "mv ./adel_out.out ./nfet_gmid.csv"))
+		)
+	)
+)
