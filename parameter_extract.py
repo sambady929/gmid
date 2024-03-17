@@ -8,8 +8,7 @@ class device:
         csv_str = self.type + '.csv'
         self.csv_np = np.array(np.loadtxt(csv_str, delimiter=',', dtype=float))
         self.csv = pd.read_csv(csv_str)
-        self.csv.columns = ['vgs', 'length', 'gm', 'Id', 'gds', 'cgg', 'vgs1', 'vds', 'vsb', 'gmId', 'Jd', 'ft', 'Avo', 'FoM']
-        self.csv.drop('vgs1', axis=1)
+        self.csv.columns = ['vgs', 'length', 'vds', 'vsb', 'gm', 'Id', 'gds', 'cgg', 'gmId', 'Jd', 'ft', 'Avo', 'FoM']
     
     # retrieve the unique value for a parameter that's closest to the desired value to avoid interpolation
     def find_closest_unique(self, param, value):
@@ -24,12 +23,19 @@ class device:
         index = np.where(dist == min(dist))[0][0]
         return index
 
+    # find corresponding param2 for a given param1 value. Used to numerically pinpoint values on a graph after plotting graph
     def find_corresp(self, length, vds, vsb, param1, value, param2):
         filtcsv = self.wavefilter(length, vds, vsb)
+        
         array = filtcsv[param1].unique()
-        dist = abs(array - value)
+        dist = abs(filtcsv[param1] - value)
         index = np.where(dist == min(dist))[0][0]
-        return self.csv[param2][index]
+        
+        param1v = array[index]
+        param2v = filtcsv.loc[filtcsv[param1] == param1v][param2].iat[0]
+        print(param1v)
+        print(param2v)
+        return param2v
 
     # filter CSV by length, vds, and vsb to then be manipulated
     def wavefilter(self, length_user, vds_user, vsb_user):
@@ -48,10 +54,8 @@ class device:
         mp.xscale('log')
         mp.grid(visible=True, which='major', axis='both')
 
-def nfettest():
-    nfet = device('nfet')
-    nfet.waveVsWave_plot(200E-9, 0.3, 0.1, 'gmId', 'Jd')
-    Jd = nfet.find_corresp(200E-9, 0.3, 0.1, 'gmId', 16, 'Jd')
-    print(Jd)
 
-nfettest()
+nfet = device('nfet')
+nfet.waveVsWave_plot(200E-9, 0.6, 0, 'gmId', 'Jd')
+nfet.waveVsWave_plot(1E-6, 0.6, 0, 'gmId', 'Jd')
+Jd = nfet.find_corresp(200E-9, 0.4, 0, 'gmId', 17, 'Jd')
