@@ -1,7 +1,8 @@
 simulator( 'spectre )
-design( "gmid180" "nfet" "schematic" )
-resultsDir( /Users/Grad/sambady/gpdk180/Curves/spectre/schematic" )
+design( "gmid180" "nfet" "schematic" ) ;EDIT TO YOUR DESIGN LIBRARY AND CELL NAME
+resultsDir( /Users/Grad/sambady/gpdk180/Curves/spectre/schematic" ) ;EDIT TO YOUR RESULTS PATH
 
+;EDIT TO YOUR ENVIRONMENT PATH TO PDK MODELS
 modelFile(
     '("/ECEnet/Apps1/linux/cad12/tools/PDKs/gpdk180_v3.3/models/spectre/gpdk.scs" "stat")
 )
